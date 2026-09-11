@@ -2,7 +2,7 @@
 
 A small interactive calculator built for [prommer.net](https://prommer.net) as a work-sample test.
 
-**Live:** _link added after the first Netlify deploy_
+**Live:** https://mixa35.github.io/fractional-cto-calculator/ (static host, so the AI rewrite falls back to the built-in summary; the Netlify deploy below turns it on)
 
 ## Why this
 
