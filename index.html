@@ -122,13 +122,60 @@
 
   .slider-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
   .slider-value { font: 700 1.5rem/1 var(--font-display); white-space: nowrap; }
+  /* Custom slider: light thumb with a navy ring stays visible over the
+     navy filled track and the grey empty track, at any position. */
   input[type="range"] {
+    --fill: 0%;
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     margin: 0.7rem 0 0;
-    accent-color: var(--ink);
     height: 1.5rem;
+    background: transparent;
     cursor: pointer;
   }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--ink) 0 var(--fill), var(--line-strong) var(--fill) 100%);
+  }
+  input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line-strong); }
+  input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--ink); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    margin-top: -8px; /* centre on the 6px track */
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--ink);
+    box-shadow: 0 1px 4px rgba(10, 18, 48, 0.35);
+  }
+  input[type="range"]::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--ink);
+    box-shadow: 0 1px 4px rgba(10, 18, 48, 0.35);
+  }
+  input[type="range"]:hover::-webkit-slider-thumb { border-color: var(--gold-deep); }
+  input[type="range"]:hover::-moz-range-thumb { border-color: var(--gold-deep); }
+  .share { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.9rem; }
+  .btn-share {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    font: 500 0.9rem/1.2 var(--font-body);
+    cursor: pointer;
+  }
+  .btn-share:hover { border-color: var(--ink); color: var(--text); }
+  .share-status { font-size: 0.88rem; color: var(--muted); }
   .reset {
     background: none; border: 0; padding: 0; margin-left: 0.25rem;
     font: inherit; color: var(--blue); text-decoration: underline; cursor: pointer;
@@ -381,6 +428,10 @@
       </div>
       <p class="summary-text" id="summaryText" aria-live="polite"></p>
       <p class="summary-meta" id="summaryMeta"></p>
+      <div class="share">
+        <button type="button" class="btn-share" id="copyLink">Copy link to this comparison</button>
+        <span class="share-status" id="copyStatus" role="status"></span>
+      </div>
     </div>
 
     <div class="cta">
@@ -583,7 +634,78 @@
     sizeNote.hidden = s.teamSize <= 50;
     sizeNote.textContent = "At more than 50 engineers, a full-time CTO may be the right call. A fractional CTO can help you hire one.";
 
+    for (const el of form.querySelectorAll('input[type="range"]')) {
+      el.style.setProperty("--fill", ((el.value - el.min) / (el.max - el.min)) * 100 + "%");
+    }
+    writeHash(s);
     showLocalSummary();
+  }
+
+  // ---------- Shareable link (URL hash) ----------
+  // Hash, not query string: works on file:// and any host, never hits a server.
+  function buildHash(s) {
+    return "#" + new URLSearchParams({
+      stage: s.stage, need: s.need, team: s.teamSize, cost: s.fullTimeCost, rate: s.rate,
+    }).toString();
+  }
+
+  function writeHash(s) {
+    const h = buildHash(s);
+    if (location.hash === h) return;
+    try { history.replaceState(history.state, "", h); } catch (e) { /* e.g. sandboxed frame: copy button still works */ }
+  }
+
+  // Parse a number and clamp/snap it to the slider's own min, max and step.
+  function sliderValue(el, raw) {
+    if (typeof raw !== "string" || !/^-?\d{1,12}(\.\d+)?$/.test(raw.trim())) return null;
+    const min = Number(el.min), max = Number(el.max), step = Number(el.step) || 1;
+    const v = Math.min(max, Math.max(min, Number(raw)));
+    return Math.min(max, min + Math.round((v - min) / step) * step);
+  }
+
+  function applyHash() {
+    const params = new URLSearchParams(location.hash.slice(1));
+    for (const name of ["stage", "need"]) {
+      const v = params.get(name);
+      // Whitelist: only accept a value that matches one of the page's own radios.
+      const radio = Array.from(form.elements[name]).find((r) => r.value === v);
+      if (radio) radio.checked = true;
+    }
+    const team = sliderValue($("team"), params.get("team"));
+    if (team !== null) $("team").value = team;
+    const cost = sliderValue($("ftCost"), params.get("cost"));
+    if (cost !== null) $("ftCost").value = cost;
+    const rate = sliderValue($("rate"), params.get("rate"));
+    // A rate equal to the full-time equivalent keeps auto-tracking the cost slider;
+    // any other rate is treated as a custom quote, so Reset shows.
+    rateTouched = rate !== null && rate !== Calc.fteRate(Number($("ftCost").value));
+    if (rate !== null) $("rate").value = rate;
+  }
+
+  let copyTimer = null;
+  async function copyLink() {
+    const url = location.href.split("#")[0] + buildHash(current);
+    let ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        ok = true;
+      }
+    } catch (e) { /* fall through to the textarea fallback */ }
+    if (!ok) {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+    }
+    const status = $("copyStatus");
+    status.textContent = ok ? "Link copied" : "Couldn't copy. Use the link in your address bar.";
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => { status.textContent = ""; }, ok ? 2000 : 4000);
   }
 
   // ---------- Summary + AI ----------
@@ -649,7 +771,10 @@
   form.addEventListener("submit", (e) => e.preventDefault());
   $("rateReset").addEventListener("click", () => { rateTouched = false; render(); });
   $("aiBtn").addEventListener("click", rewriteWithAI);
+  $("copyLink").addEventListener("click", copyLink);
+  window.addEventListener("hashchange", () => { applyHash(); render(); });
 
+  applyHash();
   render();
 })();
 </script>
