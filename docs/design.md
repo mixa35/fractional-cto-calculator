@@ -62,6 +62,7 @@ Response: `200 { "summary": "…", "model": "…" }` · anything else = failure 
 
 Function rules:
 - Validate and clamp every field (enums whitelisted, numbers clamped). **Never forward free text.**
+- `advisory`, `active` and `bestFit` are **recomputed server-side** from the validated inputs, not trusted from the client.
 - Prompt is a fixed server-side template; the model only gets the validated numbers.
 - `max_tokens` ≈ 300. Server-side timeout < client timeout.
 - Env vars: `OPENROUTER_API_KEY` (required, set only in the Netlify UI — never in the repo or chat), `OPENROUTER_MODEL` (optional).
@@ -80,7 +81,7 @@ Function rules:
 
 1. ✅ Repo + `CLAUDE.md` + this design
 2. ✅ `index.html`: inputs, calculation, local summary, CTA, styling. Verified in a browser (desktop + mobile) against hand-checked cases, plus AI-unavailable fallback.
-3. `netlify/functions/summary.mjs` + `netlify.toml`. Commit + push.
+3. ✅ `netlify/functions/summary.mjs` + `netlify.toml`. Unit tests: `node --test "tests/*.test.mjs"` (OpenRouter is mocked; no key or network needed).
 4. Mikheil: `netlify login` (own account) → link repo → add `OPENROUTER_API_KEY` (free OpenRouter account) in Netlify UI.
 5. Verify the live URL **with and without** the key.
 6. README: live link, drop-in note, one-paragraph submission note.

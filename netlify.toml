@@ -1,0 +1,7 @@
+# Static page at the repo root, plus one function at /api/summary
+# (the route is set in the function file itself). No build step.
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
