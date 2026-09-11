@@ -490,8 +490,10 @@
     let money;
     if (cost.high <= s.fullTimeCost) {
       money = `That's ${lowPct}–${highPct}% of a ${usd(s.fullTimeCost)} full-time hire, saving ${usd(s.fullTimeCost - cost.high)}–${usd(s.fullTimeCost - cost.low)} a year.`;
-    } else {
+    } else if (cost.low >= s.fullTimeCost) {
       money = `That's ${lowPct}–${highPct}% of a ${usd(s.fullTimeCost)} full-time hire, so at this rate a full-time CTO may be the better deal.`;
+    } else {
+      money = `That's ${lowPct}–${highPct}% of a ${usd(s.fullTimeCost)} full-time hire, so at this rate the top of the range costs more than hiring full-time.`;
     }
     const share = s.bestFit === "advisory"
       ? "You'd get a senior CTO for a quarter to over a third of a working week, which suits setting direction. If you need someone running the team day to day, look at Active Leadership."
