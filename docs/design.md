@@ -27,7 +27,7 @@ Only two kinds of number may appear: **published by prommer.net** or **set by th
 
 ### Best-fit tier (rule-based guide, labeled as a guide)
 
-Inputs: company stage (Pre-seed/Seed · Series A · Series B+ · Established/mid-market), engineering team size (slider), primary need (Tech strategy & roadmap · Build & lead the team · AI strategy & adoption · One specific initiative).
+Inputs: company type — Startup · Scale-up · PE portfolio company · Established company (the four "Ideal For" groups on prommer.net's Fractional CTO page), engineering team size (slider 0–100+), primary need (Tech strategy & roadmap · Build & lead the team · AI strategy & adoption · One specific initiative).
 
 - Need = one specific initiative → **Project-Based**
 - Need = build & lead the team, **or** team > 15 → **Active Leadership**
@@ -47,7 +47,7 @@ Inputs: company stage (Pre-seed/Seed · Series A · Series B+ · Established/mid
 Request (JSON):
 ```json
 {
-  "stage": "seed | seriesA | seriesB | established",
+  "stage": "startup | scaleup | pe | established",
   "teamSize": 12,
   "need": "strategy | team | ai | initiative",
   "fullTimeCost": 400000,
@@ -72,14 +72,14 @@ Function rules:
 
 - Look: match prommer.net — minimal, navy/neutral, data-forward.
 - Results: side-by-side cost bars (CSS only, no chart library), savings, best-fit card, summary, CTA.
-- CTA: **"Schedule Discovery Call →"** linking to `https://prommer.net/en/tech/services/fractional-cto/`.
+- CTA: **"Schedule Discovery Call"** (same label as the site's own button) linking to `https://prommer.net/en/tech/services/fractional-cto/`.
 - Footer: *"Independent work sample by Mikheil Gongadze — not affiliated with prommer.net."* + *"Built with Claude Code."*
 - The AI endpoint URL is one constant at the top of the script, so the file can be dropped into prommer.net and pointed elsewhere.
 
 ## Build order (every step leaves something shippable)
 
 1. ✅ Repo + `CLAUDE.md` + this design
-2. `index.html`: inputs, calculation, local summary, CTA, styling. Verify in a browser against two hand-checked cases. Commit + push.
+2. ✅ `index.html`: inputs, calculation, local summary, CTA, styling. Verified in a browser (desktop + mobile) against hand-checked cases, plus AI-unavailable fallback.
 3. `netlify/functions/summary.mjs` + `netlify.toml`. Commit + push.
 4. Mikheil: `netlify login` (own account) → link repo → add `OPENROUTER_API_KEY` (free OpenRouter account) in Netlify UI.
 5. Verify the live URL **with and without** the key.

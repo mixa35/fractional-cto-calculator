@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fractional CTO Cost Calculator</title>
+<meta name="description" content="Compare the yearly cost of a full-time CTO hire with a fractional CTO engagement.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231F1D2B'/%3E%3Crect x='6' y='9' width='20' height='4' rx='1' fill='%23fff'/%3E%3Crect x='6' y='19' width='8' height='4' rx='1' fill='%23FFC107'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dosis:wght@500;600;700&family=Encode+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* prommer.net design tokens */
+    --ink: #1F1D2B;
+    --ink-2: #2D2A3E;
+    --nav: #0A1230;
+    --page: #FAFAFA;
+    --surface: #FFFFFF;
+    --line: #E8E8E8;
+    --line-strong: #D4D4D4;
+    --text: #1F1D2B;
+    --text-2: #4B5563;
+    --muted: #6B7280;
+    --gold: #FFC107;
+    --gold-deep: #B38600;
+    --blue: #0077B5;
+    --blue-ai: #6EA8FF;
+    --blue-ai-soft: #EEF4FF;
+    --font-display: "Dosis", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-body: "Encode Sans Condensed", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    font: 400 1.125rem/1.5 var(--font-body);
+  }
+  h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.01em; }
+  a { color: var(--blue); }
+  :focus-visible { outline: 3px solid var(--blue-ai); outline-offset: 2px; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    background: linear-gradient(135deg, var(--ink), var(--ink-2));
+    color: #fff;
+    padding: 3.5rem 0 4.5rem;
+  }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 1.5rem; }
+  .tag {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--ink);
+    font: 700 0.875rem/1 var(--font-display);
+    letter-spacing: 0.08em;
+    padding: 0.55rem 0.8rem;
+    border-radius: 2px;
+    margin-bottom: 1.25rem;
+  }
+  .hero h1 { font-size: clamp(2rem, 4.5vw, 2.9rem); line-height: 1.1; max-width: 18ch; }
+  .hero p {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: rgba(255,255,255,0.85);
+    max-width: 52ch;
+    margin: 1rem 0 0;
+  }
+
+  /* ---------- Layout ---------- */
+  main.wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 2rem;
+    margin-top: -2.5rem;
+    align-items: start;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.75rem;
+  }
+  .inputs { position: sticky; top: 1.5rem; }
+  .inputs h2, .results h2 { font-size: 1.5rem; margin-bottom: 1.25rem; }
+
+  /* ---------- Inputs ---------- */
+  fieldset { border: 0; margin: 0 0 1.6rem; padding: 0; min-width: 0; }
+  legend, .field-label {
+    font: 600 1rem/1.3 var(--font-body);
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    padding: 0;
+    display: block;
+  }
+  .hint { font-size: 0.9rem; color: var(--muted); margin: 0.45rem 0 0; line-height: 1.4; }
+
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .choice { position: relative; }
+  .choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .choice span {
+    display: block;
+    height: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    font-size: 0.98rem;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+  }
+  .choice input:hover + span { border-color: var(--ink); }
+  .choice input:checked + span { border-color: var(--ink); background: var(--ink); color: #fff; }
+  .choice input:focus-visible + span { outline: 3px solid var(--blue-ai); outline-offset: 2px; }
+
+  .slider-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .slider-value { font: 700 1.5rem/1 var(--font-display); white-space: nowrap; }
+  input[type="range"] {
+    width: 100%;
+    margin: 0.7rem 0 0;
+    accent-color: var(--ink);
+    height: 1.5rem;
+    cursor: pointer;
+  }
+  .reset {
+    background: none; border: 0; padding: 0; margin-left: 0.25rem;
+    font: inherit; color: var(--blue); text-decoration: underline; cursor: pointer;
+  }
+  .reset[hidden] { display: none; }
+
+  /* ---------- Results ---------- */
+  .results { display: grid; gap: 1.25rem; }
+  .compare { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.35rem; }
+  .row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .row-name { font: 600 1.1rem/1.2 var(--font-display); }
+  .row-name small { display: block; font: 400 0.9rem/1.3 var(--font-body); color: var(--muted); margin-top: 0.15rem; }
+  .row-cost {
+    font: 700 1.6rem/1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .row-cost .per { font: 400 0.9rem var(--font-body); color: var(--muted); }
+  .track {
+    position: relative;
+    height: 14px;
+    margin-top: 0.6rem;
+    background: var(--page);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar, .range {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    transition: width .35s ease;
+  }
+  .bar.full { background: var(--ink); }
+  .bar.frac { background: var(--gold); }
+  .range {
+    background: repeating-linear-gradient(135deg, var(--gold) 0 3px, rgba(255,193,7,0.25) 3px 7px);
+  }
+  .row-note { font-size: 0.95rem; color: var(--text-2); margin-top: 0.45rem; }
+  .row-note strong { color: var(--text); font-weight: 600; }
+  .nw { white-space: nowrap; }
+  .row.is-best .nm::after {
+    content: "Best fit";
+    display: inline-block;
+    margin-left: 0.6rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    background: var(--gold);
+    color: var(--ink);
+    font: 700 0.8rem/1 var(--font-display);
+    vertical-align: 0.15em;
+  }
+  .project-cost { font: 600 1.1rem/1.2 var(--font-display); color: var(--text-2); white-space: nowrap; }
+
+  .advice {
+    border-left: 4px solid var(--gold);
+    padding: 0.2rem 0 0.2rem 1rem;
+  }
+  .advice h3 { font-size: 1.3rem; }
+  .advice p { margin: 0.4rem 0 0; color: var(--text-2); }
+  .advice .size-note { color: var(--text); }
+
+  .summary {
+    background: var(--page);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.25rem 1.35rem;
+    transition: background-color .3s, border-color .3s;
+  }
+  .summary.is-ai { background: var(--blue-ai-soft); border-color: #C9DCFF; }
+  .summary-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+  .summary-head h3 { font-size: 1.15rem; }
+  .summary-text { margin: 0; line-height: 1.6; }
+  .summary-meta { margin: 0.7rem 0 0; font-size: 0.88rem; color: var(--muted); }
+  .summary-meta:empty { display: none; }
+
+  .btn-ai {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: var(--blue-ai);
+    color: var(--nav);
+    border: 0;
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    font: 600 0.95rem/1 var(--font-body);
+    cursor: pointer;
+  }
+  .btn-ai:hover { background: #8BBAFF; }
+  .btn-ai[disabled] { opacity: .65; cursor: progress; }
+  .btn-ai svg { width: 15px; height: 15px; }
+
+  .cta {
+    display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; flex-wrap: wrap;
+    background: linear-gradient(135deg, var(--ink), var(--ink-2));
+    color: #fff;
+    border-radius: 8px;
+    padding: 1.5rem 1.6rem;
+  }
+  .cta p { margin: 0; font-family: var(--font-display); font-size: 1.2rem; max-width: 34ch; line-height: 1.3; }
+  .btn-cta {
+    display: inline-block;
+    background: #fff;
+    color: var(--ink);
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 1rem 1.75rem;
+    font: 700 1.05rem/1 var(--font-display);
+    white-space: nowrap;
+  }
+  .btn-cta:hover { background: var(--gold); }
+
+  /* ---------- Method + footer ---------- */
+  .method { max-width: 1160px; margin: 2.5rem auto 0; padding: 0 1.5rem; }
+  .method details { border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line); padding: 1rem 0; }
+  .method summary { font: 600 1.1rem var(--font-display); cursor: pointer; }
+  .method ul { margin: 0.8rem 0 0; padding-left: 1.2rem; color: var(--text-2); max-width: 75ch; }
+  .method li { margin-bottom: 0.4rem; }
+  footer {
+    max-width: 1160px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem;
+    font-size: 0.9rem; color: var(--muted);
+  }
+  footer p { margin: 0.2rem 0; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 880px) {
+    main.wrap { grid-template-columns: 1fr; }
+    .inputs { position: static; }
+  }
+  @media (max-width: 420px) {
+    .choices { grid-template-columns: 1fr; }
+    .panel { padding: 1.25rem; }
+    .row-cost { font-size: 1.35rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="tag">FRACTIONAL CTO</div>
+    <h1>What would a fractional CTO cost you?</h1>
+    <p>Compare a full-time CTO hire with 10–20 hours a week of senior technology leadership. Set the numbers to match your situation.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ============ Inputs ============ -->
+  <form class="panel inputs" id="calc" novalidate>
+    <h2>Your situation</h2>
+
+    <fieldset>
+      <legend>Company type</legend>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="stage" value="startup" checked><span>Startup</span></label>
+        <label class="choice"><input type="radio" name="stage" value="scaleup"><span>Scale-up</span></label>
+        <label class="choice"><input type="radio" name="stage" value="pe"><span>PE portfolio company</span></label>
+        <label class="choice"><input type="radio" name="stage" value="established"><span>Established company</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>What do you need most?</legend>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="need" value="strategy" checked><span>Tech strategy and roadmap</span></label>
+        <label class="choice"><input type="radio" name="need" value="team"><span>Someone to build and lead the team</span></label>
+        <label class="choice"><input type="radio" name="need" value="ai"><span>AI strategy and adoption</span></label>
+        <label class="choice"><input type="radio" name="need" value="initiative"><span>One specific initiative</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <div class="slider-row">
+        <label class="field-label" for="team">Engineering team size</label>
+        <output class="slider-value" id="teamOut" for="team">8</output>
+      </div>
+      <input type="range" id="team" name="team" min="0" max="100" step="1" value="8">
+    </fieldset>
+
+    <fieldset>
+      <div class="slider-row">
+        <label class="field-label" for="ftCost">Full-time CTO, all-in cost per year</label>
+        <output class="slider-value" id="ftOut" for="ftCost">$400,000</output>
+      </div>
+      <input type="range" id="ftCost" name="ftCost" min="150000" max="1000000" step="10000" value="400000">
+      <p class="hint">Starts at $400K, the figure prommer.net gives for a full-time hire. Include salary, benefits and equity.</p>
+    </fieldset>
+
+    <fieldset>
+      <div class="slider-row">
+        <label class="field-label" for="rate">Fractional hourly rate</label>
+        <output class="slider-value" id="rateOut" for="rate">$192/hr</output>
+      </div>
+      <input type="range" id="rate" name="rate" min="50" max="1000" step="1" value="192">
+      <p class="hint" id="rateHint">Starts at the full-time equivalent rate: <span id="fteText">$400,000 ÷ 2,080 hours</span>. Set it to the rate you've been quoted.<button type="button" class="reset" id="rateReset" hidden>Reset</button></p>
+    </fieldset>
+  </form>
+
+  <!-- ============ Results ============ -->
+  <section class="panel results" aria-labelledby="resultsTitle">
+    <h2 id="resultsTitle">Cost per year</h2>
+
+    <ul class="compare" aria-live="polite">
+      <li class="row" id="rowFull">
+        <div class="row-head">
+          <div class="row-name">Full-time CTO<small>40 hrs a week</small></div>
+          <div class="row-cost"><span id="fullCost">$400,000</span></div>
+        </div>
+        <div class="track" aria-hidden="true"><div class="bar full" id="fullBar"></div></div>
+      </li>
+
+      <li class="row" id="rowAdvisory">
+        <div class="row-head">
+          <div class="row-name"><span class="nm">Strategic Advisory</span><small>10–15 hrs a week</small></div>
+          <div class="row-cost"><span id="advCost">$99,840–$149,760</span></div>
+        </div>
+        <div class="track" aria-hidden="true"><div class="range" id="advRange"></div><div class="bar frac" id="advBar"></div></div>
+        <div class="row-note" id="advNote"></div>
+      </li>
+
+      <li class="row" id="rowActive">
+        <div class="row-head">
+          <div class="row-name"><span class="nm">Active Leadership</span><small>15–20 hrs a week</small></div>
+          <div class="row-cost"><span id="actCost">$149,760–$199,680</span></div>
+        </div>
+        <div class="track" aria-hidden="true"><div class="range" id="actRange"></div><div class="bar frac" id="actBar"></div></div>
+        <div class="row-note" id="actNote"></div>
+      </li>
+
+      <li class="row" id="rowProject">
+        <div class="row-head">
+          <div class="row-name"><span class="nm">Project-Based</span><small>One specific initiative</small></div>
+          <div class="project-cost">Scoped per project</div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="advice" id="advice">
+      <h3 id="adviceTitle">Strategic Advisory is the likely fit</h3>
+      <p id="adviceWhy"></p>
+      <p class="size-note" id="sizeNote" hidden></p>
+    </div>
+
+    <div class="summary" id="summaryBox">
+      <div class="summary-head">
+        <h3>Summary</h3>
+        <button type="button" class="btn-ai" id="aiBtn">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0l1.6 4.8L14.4 6.4 9.6 8 8 12.8 6.4 8 1.6 6.4 6.4 4.8z"/><path d="M13 10l.7 2.1 2.1.7-2.1.7L13 15.6l-.7-2.1-2.1-.7 2.1-.7z"/></svg>
+          <span id="aiBtnText">Rewrite with AI</span>
+        </button>
+      </div>
+      <p class="summary-text" id="summaryText" aria-live="polite"></p>
+      <p class="summary-meta" id="summaryMeta"></p>
+    </div>
+
+    <div class="cta">
+      <p>Want a real number for your company? Talk it through on a free discovery call.</p>
+      <a class="btn-cta" href="https://prommer.net/en/tech/services/fractional-cto/" target="_blank" rel="noopener">Schedule Discovery Call</a>
+    </div>
+  </section>
+</main>
+
+<div class="method">
+  <details>
+    <summary>How these numbers are calculated</summary>
+    <ul>
+      <li><strong>Full-time CTO:</strong> the yearly all-in cost you set. It starts at $400K, the figure prommer.net gives for a full-time hire.</li>
+      <li><strong>Full-time equivalent rate:</strong> full-time cost ÷ 2,080 hours (40 hours × 52 weeks). The hourly rate slider starts here, so every starting number comes from that single $400K figure.</li>
+      <li><strong>Fractional cost:</strong> hours per week × hourly rate × 52 weeks. The hours come from prommer.net's published engagement models: 10–15 hrs a week (Strategic Advisory) and 15–20 hrs a week (Active Leadership). The solid bar shows the low end of each range; the striped part extends to the high end.</li>
+      <li><strong>Project-Based:</strong> priced per initiative, so no yearly figure is shown.</li>
+      <li><strong>Best fit:</strong> a simple rule of thumb. One specific initiative points to Project-Based. Needing someone to build and lead the team, or having more than 15 engineers, points to Active Leadership. Everything else points to Strategic Advisory.</li>
+      <li>This is an estimate for comparison, not a quote.</li>
+    </ul>
+  </details>
+</div>
+
+<footer>
+  <p>Independent work sample by Mikheil Gongadze, built for <a href="https://prommer.net">prommer.net</a>. Not affiliated with or endorsed by prommer.net.</p>
+  <p>Built with Claude Code.</p>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  // Where the "Rewrite with AI" button sends its request. Change this one
+  // line to point the file at a different backend (or leave it: if the call
+  // fails, the built-in summary stays on screen).
+  const AI_ENDPOINT = "/api/summary";
+  const AI_TIMEOUT_MS = 8000;
+
+  const HOURS_PER_WEEK_FULL_TIME = 40;
+  const WEEKS_PER_YEAR = 52;
+  const TIERS = {
+    advisory: { name: "Strategic Advisory", low: 10, high: 15 },
+    active:   { name: "Active Leadership",  low: 15, high: 20 },
+  };
+  const STAGE_LABEL = {
+    startup: "a startup",
+    scaleup: "a scale-up",
+    pe: "a PE portfolio company",
+    established: "an established company",
+  };
+  const NEED_LABEL = {
+    strategy: "tech strategy and a roadmap",
+    team: "someone to build and lead the team",
+    ai: "AI strategy and adoption",
+    initiative: "help with one specific initiative",
+  };
+
+  // ---------- Pure calculation ----------
+  const Calc = {
+    fteRate(fullTimeCost) {
+      return Math.round(fullTimeCost / (HOURS_PER_WEEK_FULL_TIME * WEEKS_PER_YEAR));
+    },
+    annual(hoursPerWeek, rate) {
+      return hoursPerWeek * rate * WEEKS_PER_YEAR;
+    },
+    tierCost(tier, rate) {
+      return { low: Calc.annual(tier.low, rate), high: Calc.annual(tier.high, rate) };
+    },
+    bestFit(need, teamSize) {
+      if (need === "initiative") return "project";
+      if (need === "team" || teamSize > 15) return "active";
+      return "advisory";
+    },
+    compute(input) {
+      const advisory = Calc.tierCost(TIERS.advisory, input.rate);
+      const active = Calc.tierCost(TIERS.active, input.rate);
+      return {
+        ...input,
+        advisory,
+        active,
+        bestFit: Calc.bestFit(input.need, input.teamSize),
+      };
+    },
+  };
+  window.Calc = Calc; // exposed for browser testing
+
+  // ---------- Formatting ----------
+  const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+  const pct = (part, whole) => Math.round((part / whole) * 100);
+  const range = (r) => `${usd(r.low)}–${usd(r.high)}`;
+
+  function savingsNote(r, full) {
+    const lowPct = pct(r.low, full), highPct = pct(r.high, full);
+    if (r.high <= full) {
+      return `<strong>${lowPct}–${highPct}%</strong> of the full-time cost. You save <span class="nw">${usd(full - r.high)}–${usd(full - r.low)}</span> a year.`;
+    }
+    if (r.low >= full) {
+      return `<strong>${lowPct}–${highPct}%</strong> of the full-time cost. At this rate, fractional costs more than a full-time hire.`;
+    }
+    return `<strong>${lowPct}–${highPct}%</strong> of the full-time cost. At this rate, the top of the range costs more than a full-time hire.`;
+  }
+
+  // ---------- Local summary (always available, no network) ----------
+  function localSummary(s) {
+    const who = `For ${STAGE_LABEL[s.stage]} with ${s.teamSize === 0 ? "no engineers yet" : s.teamSize === 1 ? "one engineer" : s.teamSize + " engineers"} that needs ${NEED_LABEL[s.need]}`;
+    if (s.bestFit === "project") {
+      return `${who}, a Project-Based engagement is the likely fit. It's scoped per initiative, so there's no yearly figure here. For comparison, ongoing Strategic Advisory at ${usd(s.rate)}/hr would come to ${range(s.advisory)} a year, against ${usd(s.fullTimeCost)} for a full-time CTO.`;
+    }
+    const tier = TIERS[s.bestFit];
+    const cost = s[s.bestFit];
+    const lowPct = pct(cost.low, s.fullTimeCost), highPct = pct(cost.high, s.fullTimeCost);
+    let money;
+    if (cost.high <= s.fullTimeCost) {
+      money = `That's ${lowPct}–${highPct}% of a ${usd(s.fullTimeCost)} full-time hire, saving ${usd(s.fullTimeCost - cost.high)}–${usd(s.fullTimeCost - cost.low)} a year.`;
+    } else {
+      money = `That's ${lowPct}–${highPct}% of a ${usd(s.fullTimeCost)} full-time hire, so at this rate a full-time CTO may be the better deal.`;
+    }
+    const share = s.bestFit === "advisory"
+      ? "You'd get a senior CTO for a quarter to over a third of a working week, which suits setting direction. If you need someone running the team day to day, look at Active Leadership."
+      : "Close to half a working week of senior leadership is enough to run the team and own delivery, not just advise.";
+    return `${who}, ${tier.name} is the likely fit. At ${usd(s.rate)}/hr, ${tier.low}–${tier.high} hours a week comes to ${range(cost)} a year. ${money} ${share}`;
+  }
+
+  function adviceCopy(s) {
+    if (s.bestFit === "project") {
+      return ["Project-Based is the likely fit", "You need help with one specific initiative, so a scoped project beats an ongoing engagement."];
+    }
+    if (s.bestFit === "active") {
+      return ["Active Leadership is the likely fit", s.need === "team"
+        ? "You need someone to build and lead the team, which takes more hours than advising."
+        : "With more than 15 engineers, the team needs hands-on leadership, not just advice."];
+    }
+    return ["Strategic Advisory is the likely fit", s.need === "ai"
+      ? "AI strategy is mostly about direction and decisions, which 10–15 hours a week covers."
+      : "Setting strategy and a roadmap is mostly about direction and decisions, which 10–15 hours a week covers."];
+  }
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+  const form = $("calc");
+  let rateTouched = false;
+  let current = null;
+  let aiRequest = null;
+
+  function readInput() {
+    const fd = new FormData(form);
+    return {
+      stage: fd.get("stage"),
+      need: fd.get("need"),
+      teamSize: Number(fd.get("team")),
+      fullTimeCost: Number(fd.get("ftCost")),
+      rate: Number(fd.get("rate")),
+    };
+  }
+
+  function setBar(el, value, max) {
+    el.style.width = Math.min(100, (value / max) * 100) + "%";
+  }
+
+  function render() {
+    const input = readInput();
+    const fte = Calc.fteRate(input.fullTimeCost);
+    if (!rateTouched) {
+      $("rate").value = fte;
+      input.rate = fte;
+    }
+    const s = Calc.compute(input);
+    current = s;
+
+    $("teamOut").textContent = s.teamSize >= 100 ? "100+" : s.teamSize;
+    $("ftOut").textContent = usd(s.fullTimeCost);
+    $("rateOut").textContent = usd(s.rate) + "/hr";
+    $("fteText").textContent = `${usd(s.fullTimeCost)} ÷ 2,080 hours = ${usd(fte)}/hr`;
+    $("rateReset").hidden = s.rate === fte;
+
+    $("fullCost").textContent = usd(s.fullTimeCost);
+    $("advCost").textContent = range(s.advisory);
+    $("actCost").textContent = range(s.active);
+
+    const max = Math.max(s.fullTimeCost, s.active.high);
+    setBar($("fullBar"), s.fullTimeCost, max);
+    setBar($("advBar"), s.advisory.low, max);
+    setBar($("advRange"), s.advisory.high, max);
+    setBar($("actBar"), s.active.low, max);
+    setBar($("actRange"), s.active.high, max);
+
+    $("advNote").innerHTML = savingsNote(s.advisory, s.fullTimeCost);
+    $("actNote").innerHTML = savingsNote(s.active, s.fullTimeCost);
+
+    $("rowAdvisory").classList.toggle("is-best", s.bestFit === "advisory");
+    $("rowActive").classList.toggle("is-best", s.bestFit === "active");
+    $("rowProject").classList.toggle("is-best", s.bestFit === "project");
+
+    const [title, why] = adviceCopy(s);
+    $("adviceTitle").textContent = title;
+    $("adviceWhy").textContent = why;
+    const sizeNote = $("sizeNote");
+    sizeNote.hidden = s.teamSize <= 50;
+    sizeNote.textContent = "At more than 50 engineers, a full-time CTO may be the right call. A fractional CTO can help you hire one.";
+
+    showLocalSummary();
+  }
+
+  // ---------- Summary + AI ----------
+  function showLocalSummary() {
+    if (aiRequest) { aiRequest.abort(); aiRequest = null; }
+    $("summaryText").textContent = localSummary(current);
+    $("summaryBox").classList.remove("is-ai");
+    $("summaryMeta").textContent = "";
+    setAiButton(false);
+  }
+
+  function setAiButton(loading) {
+    $("aiBtn").disabled = loading;
+    $("aiBtnText").textContent = loading ? "Rewriting…" : "Rewrite with AI";
+  }
+
+  async function rewriteWithAI() {
+    const s = current;
+    const payload = {
+      stage: s.stage,
+      teamSize: s.teamSize,
+      need: s.need,
+      fullTimeCost: s.fullTimeCost,
+      rate: s.rate,
+      bestFit: s.bestFit,
+      advisory: s.advisory,
+      active: s.active,
+    };
+    const controller = new AbortController();
+    aiRequest = controller;
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    setAiButton(true);
+    $("summaryMeta").textContent = "";
+
+    try {
+      const res = await fetch(AI_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error("status " + res.status);
+      const data = await res.json();
+      if (!data || typeof data.summary !== "string" || !data.summary.trim()) throw new Error("empty");
+      if (current !== s) return; // inputs changed while waiting
+      $("summaryText").textContent = data.summary.trim();
+      $("summaryBox").classList.add("is-ai");
+      $("summaryMeta").textContent = "AI-generated, for illustration only" + (data.model ? ` (${data.model})` : "") + ". Change any input to return to the built-in summary.";
+    } catch (err) {
+      if (current !== s) return;
+      $("summaryMeta").textContent = "AI isn't available right now, so this is the built-in summary.";
+    } finally {
+      clearTimeout(timer);
+      if (aiRequest === controller) aiRequest = null;
+      if (current === s) setAiButton(false);
+    }
+  }
+
+  form.addEventListener("input", (e) => {
+    if (e.target.id === "rate") rateTouched = true;
+    render();
+  });
+  form.addEventListener("submit", (e) => e.preventDefault());
+  $("rateReset").addEventListener("click", () => { rateTouched = false; render(); });
+  $("aiBtn").addEventListener("click", rewriteWithAI);
+
+  render();
+})();
+</script>
+</body>
+</html>
