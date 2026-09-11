@@ -7,6 +7,9 @@ const DEFAULT_MODEL = "google/gemma-4-31b-it:free";
 const FALLBACK_MODEL = "openrouter/free";
 const UPSTREAM_TIMEOUT_MS = 7000; // the page gives up at 8 s
 const MAX_BODY_CHARS = 2000;
+// Sites allowed to call this function cross-origin (the page embedded on
+// prommer.net while this function runs on a separate Netlify site). Never "*".
+const ALLOWED_ORIGINS = new Set(["https://prommer.net", "https://www.prommer.net"]);
 
 const HOURS_PER_WEEK_FULL_TIME = 40;
 const WEEKS_PER_YEAR = 52;
@@ -35,10 +38,29 @@ const clamp = (value, min, max) => {
   return Math.min(max, Math.max(min, Math.round(n)));
 };
 
-const json = (status, body) =>
+const json = (status, body, extraHeaders = {}) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extraHeaders },
+  });
+
+// Echoes the Origin back only when it is allowlisted; otherwise adds nothing,
+// so same-origin requests (and disallowed sites) get exactly the old headers.
+const corsHeaders = (req) => {
+  const origin = req.headers.get("Origin");
+  return origin && ALLOWED_ORIGINS.has(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {};
+};
+
+const preflight = (req) =>
+  new Response(null, {
+    status: 204,
+    headers: {
+      ...corsHeaders(req),
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+      Vary: "Origin",
+    },
   });
 
 // Accepts only known enum values and clamped numbers. Costs and the best-fit
@@ -102,13 +124,17 @@ export function buildMessages(s) {
 }
 
 export default async (req) => {
+  if (req.method === "OPTIONS") return preflight(req);
   if (req.method !== "POST") return json(405, { error: "Use POST." });
 
+  const cors = corsHeaders(req);
+  const reply = (status, body) => json(status, body, cors);
+
   const apiKey = env("OPENROUTER_API_KEY");
-  if (!apiKey) return json(503, { error: "AI is not configured." });
+  if (!apiKey) return reply(503, { error: "AI is not configured." });
 
   const raw = await req.text();
-  if (raw.length > MAX_BODY_CHARS) return json(413, { error: "Request too large." });
+  if (raw.length > MAX_BODY_CHARS) return reply(413, { error: "Request too large." });
 
   let input;
   try {
@@ -116,7 +142,7 @@ export default async (req) => {
   } catch {
     input = null;
   }
-  if (!input) return json(400, { error: "Invalid calculator input." });
+  if (!input) return reply(400, { error: "Invalid calculator input." });
 
   const primary = env("OPENROUTER_MODEL") || DEFAULT_MODEL;
   try {
@@ -135,17 +161,17 @@ export default async (req) => {
       }),
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
-    if (!upstream.ok) return json(502, { error: `Model provider returned ${upstream.status}.` });
+    if (!upstream.ok) return reply(502, { error: `Model provider returned ${upstream.status}.` });
 
     const data = await upstream.json();
     const text = data?.choices?.[0]?.message?.content;
-    if (typeof text !== "string" || !text.trim()) return json(502, { error: "Model returned no text." });
+    if (typeof text !== "string" || !text.trim()) return reply(502, { error: "Model returned no text." });
 
     const summary = text.replace(/[*_#`]/g, "").replace(/\s+/g, " ").trim().slice(0, 900);
-    return json(200, { summary, model: data.model || primary });
+    return reply(200, { summary, model: data.model || primary });
   } catch (err) {
     const timedOut = err?.name === "TimeoutError" || err?.name === "AbortError";
-    return json(timedOut ? 504 : 502, { error: timedOut ? "Model timed out." : "Model request failed." });
+    return reply(timedOut ? 504 : 502, { error: timedOut ? "Model timed out." : "Model request failed." });
   }
 };
 

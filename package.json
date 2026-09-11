@@ -1,0 +1,7 @@
+{
+  "name": "fractional-cto-calculator",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/summary.test.mjs"
+  }
+}

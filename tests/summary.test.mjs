@@ -1,13 +1,19 @@
-// Run with: node --test "tests/*.test.mjs"
+// Run with: npm test  (or: node --test tests/summary.test.mjs)
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import handler, { parseInput, buildMessages } from "../netlify/functions/summary.mjs";
 
 const valid = { stage: "startup", need: "strategy", teamSize: 8, fullTimeCost: 400000, rate: 192 };
-const post = (body) =>
+const post = (body, headers = {}) =>
   new Request("http://localhost/api/summary", {
     method: "POST",
+    headers,
     body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+const options = (origin) =>
+  new Request("http://localhost/api/summary", {
+    method: "OPTIONS",
+    headers: { Origin: origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type" },
   });
 
 const realFetch = globalThis.fetch;
@@ -80,4 +86,44 @@ test("returns the model's summary, cleaned, with fallback model list", async () 
 test("returns 502 when the provider fails", async () => {
   globalThis.fetch = async () => new Response("rate limited", { status: 429 });
   assert.equal((await handler(post(valid))).status, 502);
+});
+
+test("OPTIONS preflight from an allowlisted origin gets 204 and CORS headers", async () => {
+  for (const origin of ["https://prommer.net", "https://www.prommer.net"]) {
+    const res = await handler(options(origin));
+    assert.equal(res.status, 204);
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), origin);
+    assert.equal(res.headers.get("Access-Control-Allow-Methods"), "POST, OPTIONS");
+    assert.equal(res.headers.get("Access-Control-Allow-Headers"), "Content-Type");
+    assert.equal(res.headers.get("Access-Control-Max-Age"), "86400");
+    assert.equal(res.headers.get("Vary"), "Origin");
+  }
+});
+
+test("OPTIONS preflight from another origin gets no Allow-Origin", async () => {
+  for (const origin of ["https://evil.example", "https://prommer.net.evil.example", "http://prommer.net"]) {
+    const res = await handler(options(origin));
+    assert.equal(res.status, 204);
+    assert.equal(res.headers.get("Access-Control-Allow-Origin"), null);
+  }
+});
+
+test("POST from an allowlisted origin carries Allow-Origin; no Origin stays unchanged", async () => {
+  globalThis.fetch = async () => Response.json({ choices: [{ message: { content: "Advisory fits." } }] });
+  const ok = await handler(post(valid, { Origin: "https://prommer.net" }));
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("Access-Control-Allow-Origin"), "https://prommer.net");
+  assert.equal(ok.headers.get("Vary"), "Origin");
+
+  const bad = await handler(post({ ...valid, need: "x" }, { Origin: "https://www.prommer.net" }));
+  assert.equal(bad.status, 400);
+  assert.equal(bad.headers.get("Access-Control-Allow-Origin"), "https://www.prommer.net");
+
+  const sameOrigin = await handler(post(valid));
+  assert.equal(sameOrigin.status, 200);
+  assert.equal(sameOrigin.headers.get("Access-Control-Allow-Origin"), null);
+  assert.equal(sameOrigin.headers.get("Vary"), null);
+
+  const evil = await handler(post(valid, { Origin: "https://evil.example" }));
+  assert.equal(evil.headers.get("Access-Control-Allow-Origin"), null);
 });
